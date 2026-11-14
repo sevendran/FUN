@@ -1,104 +1,93 @@
-# Winter — 3D 지형 기반 ASCII 배경
+﻿# Christmas ASCII implementation
 
-눈덩이 충돌 → 회전하는 눈 원반 → 초록 트리 성장과 흰색 점 장식 → 금빛 나선 장식줄 → 빨강·금색 구슬 → 꼭대기 금색 별과 섬광 → 선물 상자 낙하·착지 → 두 번째 발광 노란 나선 순서로 완성됩니다. 전체 구도는 아래로 내리고 화각을 조금 넓혀 원반이 회전할 때도 화면에 들어오도록 조정했습니다.
+## Rendering model
 
-## 상단 크리스마스 인사
+The scene uses procedural 3D geometry projected through a shared camera into a character grid. Geometry determines position, lighting, and visibility; ASCII glyphs supply the visible surface texture. Subtle glow reinforces bright characters.
 
-`christmas_greeting.py`가 상단 하늘에 `Merry Christmas`를 ASCII 문자로 표시합니다. 세로 내부 캔버스는 두 줄, 가로는 한 줄입니다. Windows의 Gabriola 장식 글꼴을 모양 마스크로만 사용하고, 최종 화면은 4×6 픽셀의 작은 ASCII 글리프로 다시 구성합니다. 일반 폰트 이미지를 뒤에 겹치지 않습니다.
+`winter_scene.py` defines the camera, terrain, snow, and composition. The overview camera uses a horizontal distance of 26, an eye height of 12, a downward pitch of about 20 degrees, and a yaw of about 16 degrees. This view exposes the stage surface and layered branches.
 
-문구는 트리 본체 완성 시점인 약 18.1초에 처음 나타납니다. 약 1.65초 동안 서리 빛이 훑으며 완성되고, 이후에는 밝은 발광 상태를 계속 유지합니다. 내부 문자는 천천히 바뀌며 밝기는 아주 조금만 반짝입니다. 금빛·붉은 Merry와 얼음빛 파랑·흰색 Christmas, 결정 무늬, 커다란 여섯 갈래 눈송이, 얼음 장식줄·매달린 크리스털, 상록수와 빨간 열매를 조합했습니다. 주변 장식 역시 모두 ASCII로 변환해 표시합니다. 인사말은 트리와 독립된 화면 요소이며, 왼쪽 90도 출력 회전에도 전체와 함께 돌아갑니다.
+`ascii_surface.py` samples surfaces into roughly 6 by 9 pixel character cells. Material-specific glyph pools, shading, and time-dependent character changes keep surfaces animated while preserving their silhouettes. The greeting uses a finer 4 by 6 pixel grid.
 
-문구가 나타난 뒤 가끔 무작위 위치 또는 한 단어가 약 0.8~1.55초 동안 더 밝게 빛납니다. 단어·위치·시작 시각·폭이 매번 달라지며, 금빛/붉은 부분은 따뜻하게, 얼음빛 부분은 푸른 흰색으로 빛납니다. 글자와 주변 장식의 모양은 유지하고 글자 영역에만 추가 발광을 적용합니다. 난수는 시각 기반 seed를 사용해 일시정지·재시작에서도 프레임 속도에 영향을 받지 않습니다.
+`rotating_stage.py` reprojects cached terrain and prop samples from their 3D coordinates each frame and resolves depth. The ground is an elliptical disc with approximate radii of 8.6 and 5.2 world units, shallow surface variation, and a side wall about 0.36 units thick. Its center is brighter than its edge.
 
-## 별과 선물 피날레
+## Shared motion and depth
 
-`christmas_finale.py`에서 마지막 구슬 장식이 끝난 뒤 약 31.2초에 두께와 면별 명암이 있는 금색 별이 나타납니다. 별이 나타나는 순간 한 번 넓은 금빛 섬광과 빛줄기가 퍼졌다 잦아들고, 이후에는 느린 주기로 별빛이 은은하게 맥동합니다. 반복되는 것은 약한 별빛이며 큰 탄생 섬광은 재시작 전까지 한 번뿐입니다.
+`stage_motion.py` supplies a common rotation beginning at the impact, approximately 1.08 seconds after startup. The stage turns clockwise when viewed from above at 0.095 radians per second, completing a revolution in about 66 seconds.
 
-별 등장 후 약 32.3초부터 선물 상자 16개가 하늘에서 0.46초 간격으로 하나씩 낙하합니다. 각 상자는 약 0.82초 동안 가속하며 떨어지고, 착지 순간 살짝 눌린 뒤 약 0.28초의 작은 바운스를 거쳐 트리 둘레에 자리 잡습니다. 상자와 리본·매듭은 동일한 강체 이동을 합니다. 나무 뒤쪽 상자는 가지에 가려지고 앞쪽 상자는 나무보다 앞에 표시됩니다. 착지 후에도 다른 장식과 같은 축으로 회전합니다.
+Terrain, props, the tree, attached ornaments, the star, and settled presents share this transform. Snow is independent. Coordinates are rotated and projected again each frame; depth testing hides rear branches, lights, ornaments, and presents behind foreground geometry.
 
-마지막 선물의 바운스가 끝나는 약 40.3초 이후, 0.25초 기다렸다가 두 번째 나선 줄이 아래에서 위로 올라갑니다. 기존 금색보다 밝은 발광 노란색으로, 기존 줄에서 반 바퀴 어긋난 경로를 약 6.5초 동안 감으며 남습니다. 약 47초에 전체 구성이 완성됩니다. 두 줄과 구슬·별·선물은 계속 함께 회전합니다.
+The tree has an additional width scale of 1.23. Its height scale is 1.12 in rotated portrait output and approximately 1.005 in landscape output. Branches, attached ornaments, and the star share that tree scale; the floor and presents retain their own dimensions.
 
-별빛은 실제 지형·소품의 3D 위치에 따라 중심 부근을 따뜻한 아이보리색으로 밝힙니다. 기존 명암과 ASCII 질감을 유지하며 별빛 맥동에 맞춰 강도가 천천히 변합니다. 나뭇가지와 구슬에도 약한 따뜻한 색을 섞습니다. 물리 기반 전역 조명 대신 거리 감쇠와 색 보간으로 분위기를 조절합니다. 기본 정지 미리보기 시각은 50초입니다.
+## Animation timeline
 
-## 함께 회전하고 순서대로 장식하기
+Times are approximate seconds after restart.
 
-흰 바닥이 처음 나타나는 1.08초부터 바닥·돌·풀·잔가지·솔방울·트리·모든 장식이 같은 축과 속도로 시계 방향 회전합니다. 위에서 보았을 때 시계 방향이며 한 바퀴는 약 66초입니다. `stage_motion.py`의 단일 변환을 모두 공유합니다. 눈송이는 무대와 함께 회전하지 않습니다.
+| Time | Event |
+|---|---|
+| 0-1.08 | A shaded ASCII snowball accelerates toward the ground |
+| 1.08 | Impact flash, shockwaves, camera recoil, and particle expansion; stage rotation starts |
+| 1.08-6.2 | Individual particles spread, arc, return, and settle into a snowy disc |
+| 6.65 | The trunk begins growing |
+| 7.5-18.11 | Fourteen branch tiers grow from bottom to top |
+| 18.11 | Tree growth finishes; the greeting and first gold spiral begin |
+| 25.66-30.96 | Red and gold baubles appear from lower branches upward |
+| 31.21 | The top star appears with a single bright flash |
+| 32.26-40.26 | Sixteen gift boxes fall and settle around the tree |
+| 40.51-47.01 | A second bright yellow spiral grows upward |
+| After 47.01 | The completed scene continues rotating, twinkling, and glowing |
 
-`rotating_stage.py`는 기존 지형·소품 표면을 실제 3D 좌표로 복원해 매 프레임 회전하고 깊이를 검사하여 문자 격자로 다시 투영합니다. 바닥 이미지를 평면에서 돌리는 방식이 아닙니다. 첫 확산·복귀 입자도 같은 축으로 회전합니다.
+## Impact and snowy stage
 
-트리 완성 시점인 약 18.1초부터 `tree_decorations.py`의 금빛 줄이 아래에서 4.6바퀴의 나선으로 올라갑니다. 약 7.2초 동안 밝은 선두가 올라가고 지나간 줄과 반짝이는 빛은 남습니다. 꼭대기에 도착한 뒤 약 25.7초부터 빨강·금색 구슬 48개가 아래층에서 위층 순서로 나타나고 약 31초에 장식이 끝납니다. 장식은 나무의 로컬 좌표에 붙어 있어 회전 중에 미끄러지지 않습니다. 뒤쪽 줄과 구슬은 앞쪽 가지에 가려집니다.
+`impact_intro.py` constructs a solid snowball using sphere normals and shaded characters. Impact adds a brief compression, a flash, two expanding shock fronts, and camera recoil.
 
-## 2.png 참고: 원형 가지층과 흰색 점 장식
+Character particles have individual directions, velocities, heights, and target positions. They travel outward, lose energy, then return inward to settle on the final ground disc. The effect changes particle positions rather than shrinking a completed image.
 
-가지를 동심원 표면으로 구성하고 각 층의 가장자리에 밝은 초록 원형 테두리를 넣었습니다. 뒤쪽 호는 앞쪽 잎에 가려지고 가까운 호는 넓게 보여 원뿔의 부피와 층의 깊이가 드러납니다. 트리는 바닥과 같은 속도로 y축 회전합니다. 실제 x,z 위치를 회전시킨 후 깊이 검사와 투영을 다시 합니다.
+`ground_details.py` adds six snow-capped rocks, sixteen grass tufts, four twigs, and four pinecones. Their world-space placement, shading, and occlusion connect them to the terrain.
 
-각 층에 7개씩 총 98개의 흰색 점 장식을 배치했습니다. 해당 가지가 자라는 시점에 부드럽게 켜지고 이후 서로 다른 위상으로 반짝입니다. 작은 `*`, `+`와 주변 `.`들이 점 장식을 이루며, 나무 뒤의 장식은 깊이로 가려집니다. 성장 전선의 흰빛과 이미 자란 가지의 점 장식은 별도 효과입니다.
+## Tree growth
 
-## 입체 표현
+`growing_tree.py` represents branches as layered 3D samples. Each sample has a growth time. A short trunk appears first, followed by fourteen tiers at roughly 0.72-second intervals. Branches extend radially from the center while the growth front climbs upward.
 
-`2.png`의 전체를 바라보는 구도를 따라 카메라 수평 거리를 13에서 26으로 늘리고 높이는 2.4에서 12로 올렸습니다. 약 16도 옆에서 약 20도 아래를 내려다보며, 화각과 화면 중심도 함께 조정해 트리 전체와 원반의 윗면·둘레를 한 화면에서 보게 했습니다. 단순히 완성 이미지를 축소한 것이 아니라 지형 광선·문자 입자 역투영·앞뒤 가림이 모두 새 카메라를 사용합니다. 눈 원반에는 실제 높이를 가진 둥근 옆면을 추가하고, 트리가 자랄수록 바닥의 접촉 그림자와 한쪽으로 드리우는 부드러운 그림자가 강해집니다.
+New growth shines white before settling into green. Branch normals, directional lighting, darker inner foliage, and brighter rims reveal the depth between layers. Completed foliage keeps changing its internal characters and green shading.
 
-왼쪽 90도 회전 모드의 내부 구도는 바닥을 더 아래로 내리고 트리를 약 35% 크게 보도록 확대했습니다. 위쪽 ASCII 인사말과 별 사이의 여백은 유지하고, 전경의 원반 일부는 화면 아래로 이어지도록 구성합니다. 회전 없는 가로 모드의 카메라 크기와 위치는 유지했습니다.
+Seven white lights per tier produce 98 lights in total. They appear as their branches grow and subsequently twinkle with independent phases. These lights are separate from the moving white growth front and respect depth occlusion.
 
-최종 크기 조정으로 트리 자체의 가로 폭을 추가 23%, 회전 모드의 높이를 추가 12% 키웠습니다. 가지·흰 점·두 장식줄·구슬·꼭대기 별은 같은 트리 스케일을 공유합니다. 바닥·선물 상자·인사말은 유지하며, 가로 모드의 높이는 상단 문구에 겹치지 않는 범위로 제한합니다.
+## Decorations, star, and gifts
 
-트리는 가지 표면의 기울기에서 법선을 구해 방향광을 적용하고, 가지 안쪽과 층 사이의 그늘, 둥근 몸체의 좌우 명암과 가장자리의 약한 반사광을 더했습니다. 문자 밀도도 밝기에 따라 바뀝니다. 기존 성장 순서와 생성 전선의 흰빛은 유지했습니다. 최종 표시는 계속 ASCII이며 사진이나 매끈한 삼각형 그림을 뒤에 덧대지 않습니다.
+`tree_decorations.py` draws a gold spiral around the tree over about 7.2 seconds. Its leading tip advances upward through 4.6 turns and leaves a persistent illuminated ribbon. Forty-eight red and gold baubles then appear from bottom to top.
 
-## 트리 성장
+`christmas_finale.py` creates an extruded, faceted five-point star. Its first appearance triggers a brief broad flash and thin rays. Afterward, gentle periodic light warms nearby snow, props, and branches according to world-space proximity while retaining their ASCII texture.
 
-원반 위치를 기존보다 화면 높이의 7% 아래로 내렸습니다. 바닥 정착 후 6.65초부터 중앙의 짧은 줄기가 솟고, 7.5초부터 맨 아래층 가지가 중심에서 좌우로 펼쳐집니다. 이후 0.72초 간격으로 다음 층이 올라오며 총 14층의 가지와 침엽이 트리를 만듭니다. 약 18.1초에 완성됩니다.
+Sixteen presents fall individually at 0.46-second intervals. Each fall lasts about 0.82 seconds, followed by landing squash and a short bounce. Boxes, ribbons, and bows move together as rigid objects. Their settled positions form a ring around the tree and rotate with the stage.
 
-`growing_tree.py`에서 가지와 잎을 실제 3D 점으로 구성하고 각 점에 생성 시각을 부여합니다. 새로 자라는 전선은 밝은 흰색 문자와 약한 후광을 내며, 지나간 부분은 풍성한 초록색으로 남습니다. 본체도 전체 그림이 아니라 셀별 ASCII 문자입니다. 완성 후 내부 문자는 계속 바뀌며 초록 명암도 천천히 변합니다. 나무 뒤의 눈송이는 깊이로 가립니다. 완성된 형상의 투영은 캐시하고 트리가 차지하는 영역만 렌더링합니다.
+After the final landing, a second spiral climbs for about 6.5 seconds. It is brighter yellow and offset by half a turn from the first gold ribbon. Both ribbons remain visible afterward.
 
-`preview.png`는 완성 모습, `growth_preview.png`는 성장 중 모습, `tree_growth.gif`는 전체 흐름의 저해상도 미리보기입니다. `R`을 누르면 눈덩이부터 다시 재생합니다.
+## Greeting and snow
 
-## 타원형 바닥과 첫 등장
+`christmas_greeting.py` uses an installed decorative font only to derive a shape mask. It converts the text and surrounding frost ornaments into ASCII glyphs, then discards the source mask. The visible greeting contains no conventional text-image overlay.
 
-`2.png`를 참고해 끝없이 이어지는 직선 바닥을 없애고 검은 공간 안의 유한한 타원형 눈 무대로 변경했습니다. 실제 x,z 좌표의 타원 범위에 지형을 제한하고 중앙은 흰색이 강하게, 바깥은 은은하고 어둡게 표현합니다. 소품도 타원 안으로 재배치했습니다.
+The greeting appears at tree completion and reveals over about 1.65 seconds. Rotated portrait composition uses two lines; landscape uses one. Merry uses warm red and gold, while Christmas uses icy blue and white. Snowflakes, hanging crystals, evergreen details, and berries extend the decoration.
 
-속이 찬 큰 ASCII 눈덩이가 가속하며 떨어져 1.08초에 보이지 않는 바닥에 충돌합니다. 눈덩이는 구면 법선과 알갱이 명암으로 표현하며 충돌할 때 잠깐 납작해집니다. 충격 섬광과 이중 충격파, 짧은 화면 반동이 발생하고 문자 입자들이 제각각 다른 속도·각도·높이로 방사형으로 터져 나갑니다. 각 입자는 공중 포물선 후 내려앉으며, 바깥으로 퍼지는 충격량이 감쇠한 뒤 개별 목표 위치로 되돌아옵니다. 6.2초에 낮고 부드럽게 볼록한 눈 원반으로 정착합니다. 화면 크기나 완성 이미지를 축소하는 동작은 제거했습니다.
+After appearing, the greeting stays bright. Selected letter regions or a whole word occasionally shine for about 0.8-1.55 seconds, using colors appropriate to their palette. Seeded time-based scheduling keeps these variations consistent across pause, restart, and frame-rate changes.
 
-`impact_intro.py`가 각 문자 셀의 최종 3D 위치를 역투영하고 입자 궤적을 계산합니다. 모든 입자의 전체 충돌을 적분한 물리 엔진은 아니며, 중력 포물선·방사 충격·감쇠·목표 복귀를 조합한 절차적 입자 연출입니다. 완성 후에도 내부 문자·빛·색 변화는 계속됩니다. `R`로 낙하부터 다시 볼 수 있습니다.
+The scene contains approximately 1,800 world-space snowflakes. A small subset, about 1.8 percent, can produce brief asynchronous icy glints.
 
-## 실행
+## Output orientation and composition
 
-`run.bat` 더블클릭: 기본 **화면 전체를 왼쪽으로 90도 회전**하여 전체화면 실행. Windows 표시 방향은 가로로 유지합니다. 글자·트리·눈·모든 효과를 합친 최종 화면을 통째로 회전합니다. 화면 비율만 세로로 바꾸어 중앙에 띄우던 이전 방식은 제거했습니다. 이 PC의 루트 `.venv`에 설치된 NumPy와 pygame-ce를 사용합니다.
+`tree.py` renders the logical scene before applying the final output rotation. Default portrait output swaps the logical dimensions and rotates the finished frame 90 degrees counterclockwise. For example, a logical 1080 by 1920 frame becomes a 1920 by 1080 output for a physically rotated monitor.
 
-- `1` (숫자패드 포함): 가로 16:9 모드
-- `2` (숫자패드 포함): 화면 전체 왼쪽 90도 회전으로 복귀
-- `Esc`: 종료
-- `F11`: 전체화면 / 창 모드
-- `Space`: 일시정지
-- `R`: 처음부터
-- `S`: captures 폴더에 현재 화면 저장
+The portrait composition places the stage lower and uses a larger tree while preserving space for the greeting. Landscape has its own framing. Keys 1 and 2 switch orientation without restarting animation time. Screenshots and headless exports use the same final rotation as the visible output.
+
+## Setup and verification
+
+`run.bat` checks a local `.venv` first. It can also use a compatible environment one or two folders above the project after checking that both pygame and NumPy import successfully. Otherwise, it calls `setup.bat --quiet` to create and populate a local environment.
+
+`setup.bat` prefers a working `python` command with Python 3.10 or newer and falls back to `py -3`. It installs `requirements.txt`, checks imports, and returns an error code if setup fails.
+
+A reproducible rendering check from the project folder is:
 
 ```powershell
-./run.bat --windowed
-../.venv/Scripts/python.exe tree.py --export preview.png --time 50
-# 가로 모드로 시작하거나 가로 미리보기 저장
-./run.bat --orientation landscape
-../.venv/Scripts/python.exe tree.py --orientation landscape --export preview_landscape.png
+.\run.bat --export "$env:TEMP\christmas-check.png" --time 50
 ```
 
-모드 전환은 현재 재생 시각을 유지합니다. 기본 회전 모드는 실제 출력 폭·높이를 뒤집은 내부 캔버스에 그린 뒤 최종 합성 결과를 왼쪽 90도로 돌려 가로 출력 화면을 채웁니다. Windows 화면 설정을 바꾸지 않으며 모니터를 물리적으로 세워 사용하는 방식입니다. CLI의 `--orientation portrait`는 이 90도 회전 출력을 뜻합니다. `--orientation landscape` 또는 `1`은 회전 없는 가로 출력입니다. `S`와 `--export`도 실제 회전된 출력 화면을 저장합니다.
-
-독립 환경은 `py -m venv .venv` 후 `.venv/Scripts/python.exe -m pip install -r requirements.txt`로 준비할 수 있습니다.
-
-## 표현 구조
-
-1. `winter_scene.py`: 실제 x,z 높이장과 카메라 원근 투영으로 굴곡 있는 눈 지형을 계산합니다. 지형 법선, 거리, 눈 알갱이로 명암과 질감을 만듭니다.
-2. `ground_details.py`: 눈 덮인 돌 6개, 마른 풀 무더기 16개, 잔가지 4개, 솔방울 4개를 3D 점으로 만듭니다. 소품별 재질 ID와 깊이를 함께 저장합니다.
-3. `ascii_surface.py`: 지형과 소품의 투영 결과를 6×9 픽셀 문자 셀로 샘플링합니다. 얇은 풀이나 가지는 해당 재질의 픽셀을 우선하여 흰 눈에 묻히지 않게 합니다. 화면에 보이는 바닥은 모두 글리프 아틀라스로 조립한 문자입니다. 원래 점 그림을 뒤에 겹쳐 보여주지 않습니다.
-4. 눈송이 1,800개도 3D 위치에서 문자로 표시합니다. 앞의 소품과 지형에 가려지며 실제 지형 높이에서 다시 순환합니다.
-
-눈송이 중 약 1.8%만 반짝임 후보입니다. 각 눈의 고정 위상과 느린 사인파의 짧은 봉우리를 이용해 드문 순간에 작은 흰색 `*`와 얼음빛 점들이 밝아졌다 잦아듭니다. 반짝이는 동안에도 원래 눈송이 궤적을 따라 계속 떨어지며 지형·트리의 가림도 유지합니다.
-
-문자 선택은 test2의 밝기별 POOLS 구조를 따릅니다. 돌은 조밀한 채움 문자, 풀은 `| / \\ ! i l` 계열, 가지는 선 계열, 솔방울은 둥글고 거친 문자를 사용합니다. 외곽은 방향에 맞는 선 문자로 유지합니다.
-
-## 계속 변하는 표면
-
-형상과 재질 경계는 고정하고, 내부 글자만 셀별로 다른 속도로 순환합니다. 느린 조명 파동과 흰색·은청색·아이보리색의 작은 변화, 드문 얼음 결정의 반짝임, 짧은 MAX 잔상과 약한 글로우를 더했습니다. 무작위로 매 프레임 재추첨하지 않으므로 같은 시각에는 같은 표면을 계산합니다. 생성 후 멈추는 이미지가 아닙니다.
-
-정지 상태와 시간 초기화에서도 잔상 처리를 구분합니다. 지형과 소품의 3D 계산은 초기화 때 캐시하고 문자와 색·눈송이만 매 프레임 갱신합니다. 지형은 이미 눈이 쌓인 상태이며 적설 높이가 계속 증가하지는 않습니다.
-
-표시는 pygame 소프트웨어 렌더러이며 자유 카메라 이동은 없습니다. 전체화면은 개발 모드로 OS 키를 차단하는 키오스크 잠금은 아직 없습니다.
+The repository includes a small `preview.jpg`. Virtual environments, generated captures, development GIFs, and reference photographs are excluded from version control.

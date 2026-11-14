@@ -1,7 +1,7 @@
-# FUN — ASCII
+﻿# FUN - ASCII
 
-개인 ASCII 크리에이티브 코딩 프로젝트 모음입니다.
+A collection of ASCII creative coding projects.
 
-- [Christmas ASCII](christmas/README.md): 눈덩이 충돌, 성장하는 트리, 회전하는 장식과 선물, 크리스마스 인사말
+- [Christmas ASCII](christmas/README.md): a snowball impact, a growing Christmas tree, rotating decorations, falling gifts, and a festive greeting.
 
-각 프로젝트 폴더의 README에서 설치·실행 방법을 확인하세요.
+See each project's README for setup instructions and controls.
