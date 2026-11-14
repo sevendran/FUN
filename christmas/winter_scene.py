@@ -13,6 +13,8 @@ from stage_motion import rotate as rotate_stage, angle as stage_angle
 from rotating_stage import RotatingStage
 from christmas_finale import ChristmasFinale
 from christmas_greeting import ChristmasGreeting
+from christmas_fireworks import ChristmasFireworks
+from santa_flyby import SantaFlyby
 
 
 def height(x, z):
@@ -51,6 +53,11 @@ class Winter:
         self.tree = GrowingTree(self,height)
         self.finale = ChristmasFinale(self,height)
         self.greeting = ChristmasGreeting(size,start=COMPLETE)
+        star=self.tree.rotate(self.finale.center[None,:],self.finale.yellow_start)[0]
+        _,star_y,_=self.project(*star)
+        sky_band=(self.greeting.bounds[0].centery,max(self.greeting.bounds[0].centery+self.h*.04,float(star_y)))
+        self.fireworks = ChristmasFireworks(size, self.finale.yellow_start,sky_band)
+        self.santa = SantaFlyby(size, COMPLETE)
 
     @staticmethod
     def rotate_stage(p,t):
@@ -244,6 +251,19 @@ class Winter:
         if t>=START:
             self.tree.draw(frame,t)
             self.finale.draw_glow(frame,t)
+        if t>=self.fireworks.start:
+            background=pygame.Surface(self.size)
+            self.fireworks.draw(background,t)
+            # Fill each depth-bearing silhouette row, including gaps between glyphs.
+            # This prevents distant sparks from showing through the tree's letters.
+            blocked=np.isfinite(self.tree.depth)|np.isfinite(self.stage.cell_z)
+            for row in blocked:
+                occupied=np.flatnonzero(row)
+                if len(occupied):row[occupied[0]:occupied[-1]+1]=True
+            mask=pygame.surfarray.make_surface(np.repeat(blocked.T[:,:,None]*255,3,axis=2).astype(np.uint8))
+            mask=pygame.transform.scale(mask,(self.ascii.cols*6,self.ascii.rows*9))
+            background.blit(mask,(0,0),special_flags=pygame.BLEND_RGB_SUB)
+            frame.blit(background,(0,0),special_flags=pygame.BLEND_RGB_ADD)
         x,y,z=self.snow_positions(t)
         sx,sy,depth=self.project(x,y,z)
         visible=(sx>=0)&(sx<self.w)&(sy>=0)&(sy<self.h)&(depth>.1)
@@ -270,4 +290,5 @@ class Winter:
                 spark.set_alpha(int(80+175*twinkle[k]))
                 frame.blit(spark,spark.get_rect(center=(px,py)))
         self.greeting.draw(frame,t)
+        self.santa.draw(frame,t)
         return frame

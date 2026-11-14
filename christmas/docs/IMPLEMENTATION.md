@@ -1,4 +1,4 @@
-﻿# Christmas ASCII implementation
+# Christmas ASCII implementation
 
 ## Rendering model
 
@@ -66,7 +66,7 @@ After the final landing, a second spiral climbs for about 6.5 seconds. It is bri
 
 `christmas_greeting.py` uses an installed decorative font only to derive a shape mask. It converts the text and surrounding frost ornaments into ASCII glyphs, then discards the source mask. The visible greeting contains no conventional text-image overlay.
 
-The greeting appears at tree completion and reveals over about 1.65 seconds. Rotated portrait composition uses two lines; landscape uses one. Merry uses warm red and gold, while Christmas uses icy blue and white. Snowflakes, hanging crystals, evergreen details, and berries extend the decoration.
+The greeting appears at tree completion and is revealed from left to right during a seven-second Santa flyby. Rotated portrait composition uses two lines; landscape uses one. Merry uses warm red and gold, while Christmas uses icy blue and white. Snowflakes, hanging crystals, evergreen details, and berries extend the decoration.
 
 After appearing, the greeting stays bright. Selected letter regions or a whole word occasionally shine for about 0.8-1.55 seconds, using colors appropriate to their palette. Seeded time-based scheduling keeps these variations consistent across pause, restart, and frame-rate changes.
 
@@ -91,3 +91,18 @@ A reproducible rendering check from the project folder is:
 ```
 
 The repository includes a small `preview.jpg`. Virtual environments, generated captures, development GIFs, and reference photographs are excluded from version control.
+
+
+## Background fireworks
+
+`christmas_fireworks.py` begins at `ChristmasFinale.yellow_start`. Launches repeat every 1.5 seconds with independently randomized flight durations, origins, and angles. Event seeds are stable across restart, pause, and exports; only active events remain cached.
+
+Burst centers span the full horizontal sky, including the center behind the tree. The vertical range is derived from the greeting and the projected top star rather than a fixed horizontal band. Random sizes, eight color palettes, and eight procedural silhouettes provide variation: circles, hearts, stockings, cookies, snowmen, snowflakes, bells, and gingerbread figures.
+
+ASCII particles expand into a recognizable outline, briefly retain it, then scatter, drift, twinkle, and fade. Tree and terrain depth produce filled foreground silhouette masks, so even sparks aligned with spaces between foreground characters remain hidden. Snow and the greeting render afterward.
+
+## Santa flyby and distant fireworks
+
+`santa_flyby.py` draws Santa, a gift-filled sleigh, reins, two reindeer, and Rudolph's red nose as colored ASCII samples. Two leg poses, a gentle flight arc, and a golden trail animate a single seven-second crossing when the tree completes. A shared time-based horizontal reveal front writes the greeting behind the leading reindeer. The sleigh exits completely and the greeting remains illuminated.
+
+Firework centers occupy the upper sky near the greeting. Their smaller apparent size suggests distance; horizontal centers and heights vary independently. A filled silhouette mask derived from tree and terrain depth prevents sparks from appearing through gaps between foreground ASCII glyphs. The greeting is drawn afterward to preserve readability.

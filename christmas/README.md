@@ -1,4 +1,4 @@
-﻿# Christmas ASCII
+# Christmas ASCII
 
 A Python/pygame animation in which an ASCII snowball strikes the ground, forms a snowy stage, and grows into a decorated Christmas scene.
 
@@ -49,7 +49,8 @@ Fullscreen is enabled by default. OS keyboard shortcuts remain available; this p
 - The stage, rocks, grass, twigs, tree, and attached decorations rotate together clockwise. Falling snow moves independently.
 - Green branches grow upward in layers with a bright white growth front and twinkling white lights.
 - A gold spiral climbs the tree, followed by red and gold baubles, a glowing star, individually falling gifts, and a second bright yellow spiral.
-- An ASCII Merry Christmas greeting appears when the tree finishes growing. Frost decorations and occasional warm or icy highlights keep it lively.
+- Continuous multicolored ASCII fireworks begin behind the tree when the second yellow spiral starts. Random heights and positions between the greeting and tree star feature circles, hearts, stockings, cookies, snowmen, snowflakes, bells, and gingerbread figures.
+- An ASCII Santa sleigh led by Rudolph crosses the sky when the tree finishes growing, revealing Merry Christmas behind it. Frost decorations and occasional warm or icy highlights keep it lively.
 
 Installed fonts such as Gabriola or Segoe Script provide the greeting's shape mask; its visible letters and surrounding decorations are rendered as ASCII characters. Fallback fonts are supported. Reference photographs are not needed at runtime.
 
@@ -67,6 +68,8 @@ Installed fonts such as Gabriola or Segoe Script provide the greeting's shape ma
 | `growing_tree.py` | Branch growth and white lights |
 | `tree_decorations.py` | Gold spiral and baubles |
 | `christmas_finale.py` | Star, gifts, warm lighting, and yellow spiral |
+| `santa_flyby.py` | Santa and reindeer flyby synchronized with the greeting |
+| `christmas_fireworks.py` | Repeating ASCII circle and heart fireworks |
 | `christmas_greeting.py` | ASCII greeting, frost decorations, and highlights |
 
 See [Implementation notes](docs/IMPLEMENTATION.md) for rendering details and the animation timeline.

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pygame
+from santa_flyby import reveal_front
 
 
 CW,CH=4,6
@@ -167,11 +168,9 @@ class ChristmasGreeting:
         age=t-self.start
         self.glint=self.random_glint(t)
         if age<0:return np.zeros_like(self.base_chars),np.zeros_like(self.color,dtype=np.uint8)
-        u=np.clip(age/1.65,0,1)
-        reveal=u*u*(3-2*u)
-        # A frost-light sweep writes the title, then holds it fully illuminated.
-        local=(self.cc/max(1,self.cols-1))*.64+(self.rr/max(1,self.rows-1))*.20+(self.hash%19)/19*.08
-        k=np.clip((reveal-local)/.12,0,1)
+        # The flying sleigh writes both lines from left to right behind its nose.
+        local=(self.cc+.5)/max(1,self.cols)
+        k=np.clip((reveal_front(age)-local)/.055,0,1)
         chars=self.base_chars.copy()
         inside=self.on&(self.hash%4==0)
         tick=np.floor(t*.8+self.phase).astype(int)
